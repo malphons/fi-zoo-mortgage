@@ -1,0 +1,38 @@
+{
+  "spoke_id": "mortgage",
+  "label": "Mortgage & Embedded Options",
+  "models": [
+    {
+      "id": "prepayment-cpr",
+      "name": "Prepayment Model (CPR)",
+      "short_description": "Models the conditional prepayment rate of mortgage pools as a function of rate incentives, seasoning, and burnout.",
+      "family": "mortgage",
+      "subcategory": "prepayment",
+      "tags": ["cpr", "psa", "refinancing", "burnout", "seasoning"],
+      "year_introduced": 1985,
+      "key_paper": "Richard & Roll (1989)",
+      "complexity": "intermediate",
+      "color_accent": "#d2a8ff",
+      "formula": "CPR = 1 - (1 - SMM)^12",
+      "products": ["agency MBS", "CMOs", "mortgage servicing rights"],
+      "related_models": ["oas"],
+      "key_insight": "Prepayment is a homeowner's free option: they refinance when rates drop."
+    },
+    {
+      "id": "oas",
+      "name": "Option-Adjusted Spread (OAS)",
+      "short_description": "Decomposes bond spread into option cost and residual compensation by simulating cash flows across rate paths.",
+      "family": "mortgage",
+      "subcategory": "spread",
+      "tags": ["oas", "z-spread", "monte-carlo", "embedded-option"],
+      "year_introduced": 1986,
+      "key_paper": "Windas (1993)",
+      "complexity": "advanced",
+      "color_accent": "#d2a8ff",
+      "formula": "P = Σ(paths) 1/N Σt CF_t / Π(1+r_s+OAS)",
+      "products": ["MBS", "callable bonds", "CMOs", "ABS"],
+      "related_models": ["prepayment-cpr", "hull-white"],
+      "key_insight": "OAS strips out option cost to reveal pure credit/liquidity compensation."
+    }
+  ]
+}

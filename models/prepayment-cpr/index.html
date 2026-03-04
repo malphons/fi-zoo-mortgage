@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prepayment Model (CPR) | Mortgage &amp; Embedded Options</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;--dim:#484f58;
+  --accent:#d2a8ff;--accent2:#a371f7;--accent3:#8957e5;
+  --green:#3fb950;--red:#f85149;--yellow:#d29922;--blue:#58a6ff;
+  --orange:#d18616;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;line-height:1.6;overflow-x:hidden}
+.top-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:.6rem 1.5rem;display:flex;align-items:center;gap:.75rem;position:sticky;top:0;z-index:100}
+.top-bar a{color:var(--muted);text-decoration:none;font-size:.85rem}
+.top-bar a:hover{color:var(--accent)}
+.top-bar .sep{color:var(--dim)}
+.top-bar .current{color:var(--accent);font-weight:600}
+.badge{display:inline-block;padding:.15rem .55rem;border-radius:12px;font-size:.7rem;font-weight:600;background:rgba(210,168,255,.15);color:var(--accent);margin-left:.5rem}
+
+.hero{padding:3rem 2rem 2rem;text-align:center;max-width:900px;margin:0 auto}
+.hero h1{font-size:2.2rem;font-weight:700;margin-bottom:.75rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero .subtitle{color:var(--muted);font-size:1.1rem;max-width:700px;margin:0 auto 1.5rem}
+.formula-box{display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 2rem;font-family:'Courier New',monospace;font-size:1.1rem;color:var(--accent);margin-bottom:1rem}
+.key-insight{background:linear-gradient(135deg,rgba(210,168,255,.08),rgba(163,113,247,.05));border:1px solid rgba(210,168,255,.2);border-radius:12px;padding:1rem 1.5rem;max-width:650px;margin:1rem auto 0;font-size:.95rem;color:var(--muted)}
+.key-insight strong{color:var(--accent)}
+
+.dashboard{max-width:1300px;margin:0 auto;padding:1.5rem;display:grid;grid-template-columns:320px 1fr;gap:1.5rem}
+@media(max-width:900px){.dashboard{grid-template-columns:1fr}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem}
+.panel h2{font-size:1rem;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.panel h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+
+.control-group{margin-bottom:1.25rem}
+.control-group label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.35rem;font-weight:500}
+.control-group .val{float:right;color:var(--accent);font-weight:600;font-family:'Courier New',monospace}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:var(--border);outline:none;margin-top:.25rem}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 8px rgba(210,168,255,.4)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:none}
+
+.psa-buttons{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+.psa-btn{padding:.4rem .8rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.8rem;font-weight:600;transition:all .2s}
+.psa-btn:hover{border-color:var(--accent);color:var(--accent)}
+.psa-btn.active{background:rgba(210,168,255,.15);border-color:var(--accent);color:var(--accent)}
+
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1rem}
+.stat{background:rgba(210,168,255,.05);border:1px solid rgba(210,168,255,.1);border-radius:10px;padding:.75rem;text-align:center}
+.stat .label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.stat .value{font-size:1.2rem;font-weight:700;color:var(--accent);font-family:'Courier New',monospace;margin-top:.15rem}
+
+.main-area{display:flex;flex-direction:column;gap:1.5rem}
+canvas{width:100%!important;border-radius:8px}
+
+.waterfall-container{position:relative;height:320px;background:rgba(0,0,0,.2);border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+.waterfall-bar{position:absolute;bottom:0;border-radius:4px 4px 0 0;transition:height .6s ease}
+.waterfall-label{position:absolute;bottom:-22px;font-size:.6rem;color:var(--dim);text-align:center;width:100%}
+
+.chart-container{position:relative;height:280px}
+
+.cf-table-wrap{max-height:320px;overflow-y:auto;border-radius:10px;border:1px solid var(--border)}
+.cf-table-wrap::-webkit-scrollbar{width:6px}
+.cf-table-wrap::-webkit-scrollbar-track{background:var(--surface)}
+.cf-table-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+th{position:sticky;top:0;background:var(--surface);color:var(--muted);font-weight:600;text-align:right;padding:.5rem .6rem;border-bottom:1px solid var(--border);text-transform:uppercase;font-size:.7rem;letter-spacing:.5px}
+th:first-child{text-align:left}
+td{padding:.4rem .6rem;text-align:right;border-bottom:1px solid rgba(48,54,61,.5);color:var(--text);font-family:'Courier New',monospace;font-size:.75rem}
+td:first-child{text-align:left;color:var(--muted)}
+tr:hover td{background:rgba(210,168,255,.03)}
+
+.convexity-section{max-width:1300px;margin:0 auto;padding:0 1.5rem 3rem}
+.convexity-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+@media(max-width:900px){.convexity-panel{grid-template-columns:1fr}}
+.convexity-panel h2{grid-column:1/-1;font-size:1.1rem;margin-bottom:0}
+.conv-text{color:var(--muted);font-size:.9rem;line-height:1.7}
+.conv-text p{margin-bottom:.75rem}
+.conv-highlight{color:var(--accent);font-weight:600}
+.duration-display{text-align:center;padding:1.5rem;background:rgba(210,168,255,.05);border-radius:12px;border:1px solid rgba(210,168,255,.15)}
+.duration-display .dur-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.duration-display .dur-value{font-size:2.5rem;font-weight:700;color:var(--accent);font-family:'Courier New',monospace;margin:.5rem 0}
+.duration-display .dur-sub{font-size:.8rem;color:var(--dim)}
+.dur-row{display:flex;justify-content:center;gap:2rem;margin-top:1rem}
+.dur-item{text-align:center}
+.dur-item .di-val{font-size:1.4rem;font-weight:700;font-family:'Courier New',monospace}
+.dur-item .di-label{font-size:.7rem;color:var(--muted);margin-top:.2rem}
+.neg-conv{color:var(--red)}
+.pos-conv{color:var(--green)}
+
+footer{text-align:center;padding:2rem;color:var(--dim);font-size:.75rem;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="../../">FI Zoo</a><span class="sep">/</span>
+  <a href="../../#mortgage">Mortgage</a><span class="sep">/</span>
+  <span class="current">Prepayment (CPR)</span>
+  <span class="badge">INTERMEDIATE</span>
+</div>
+
+<div class="hero">
+  <h1>Prepayment Model (CPR)</h1>
+  <p class="subtitle">Models the conditional prepayment rate of mortgage pools as a function of rate incentives, seasoning, and burnout.</p>
+  <div class="formula-box">CPR = 1 - (1 - SMM)<sup>12</sup></div>
+  <div class="key-insight"><strong>Key Insight:</strong> Prepayment is a homeowner's free option -- they refinance when rates drop, shortening cash flows precisely when reinvestment rates are lowest.</div>
+</div>
+
+<div class="dashboard">
+  <!-- LEFT: Controls -->
+  <div style="display:flex;flex-direction:column;gap:1.5rem">
+    <div class="panel">
+      <h2><span class="dot"></span>Mortgage Parameters</h2>
+      <div class="control-group">
+        <label>Mortgage Rate (WAC) <span class="val" id="vWAC">6.50%</span></label>
+        <input type="range" id="sWAC" min="2" max="12" step="0.25" value="6.5">
+      </div>
+      <div class="control-group">
+        <label>Current Market Rate <span class="val" id="vMkt">5.00%</span></label>
+        <input type="range" id="sMkt" min="1" max="12" step="0.25" value="5.0">
+      </div>
+      <div class="control-group">
+        <label>Loan Age / Seasoning (months) <span class="val" id="vAge">12</span></label>
+        <input type="range" id="sAge" min="0" max="360" step="1" value="12">
+      </div>
+      <div class="control-group">
+        <label>Pool Factor <span class="val" id="vPF">0.95</span></label>
+        <input type="range" id="sPF" min="0.01" max="1" step="0.01" value="0.95">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="dot"></span>PSA Benchmark</h2>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:.75rem">100% PSA: CPR ramps from 0% to 6% over 30 months, then remains at 6%.</p>
+      <div class="psa-buttons">
+        <button class="psa-btn" data-psa="50">50%</button>
+        <button class="psa-btn active" data-psa="100">100%</button>
+        <button class="psa-btn" data-psa="150">150%</button>
+        <button class="psa-btn" data-psa="200">200%</button>
+        <button class="psa-btn" data-psa="300">300%</button>
+        <button class="psa-btn" data-psa="400">400%</button>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="label">CPR</div><div class="value" id="statCPR">--</div></div>
+        <div class="stat"><div class="label">SMM</div><div class="value" id="statSMM">--</div></div>
+        <div class="stat"><div class="label">Incentive</div><div class="value" id="statInc">--</div></div>
+        <div class="stat"><div class="label">WAL (yrs)</div><div class="value" id="statWAL">--</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Visuals -->
+  <div class="main-area">
+    <!-- Cash Flow Waterfall -->
+    <div class="panel">
+      <h2><span class="dot"></span>Cash Flow Waterfall -- Scheduled vs Prepaid Principal</h2>
+      <canvas id="waterfallCanvas" height="300"></canvas>
+    </div>
+
+    <!-- PSA Ramp & Incentive Curves -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+      <div class="panel">
+        <h2><span class="dot"></span>PSA Ramp</h2>
+        <canvas id="psaCanvas" height="220"></canvas>
+      </div>
+      <div class="panel">
+        <h2><span class="dot"></span>Refinancing Incentive (S-Curve)</h2>
+        <canvas id="scurveCanvas" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- Remaining Balance Chart -->
+    <div class="panel">
+      <h2><span class="dot"></span>Remaining Balance Under Different Prepayment Scenarios</h2>
+      <canvas id="balanceCanvas" height="260"></canvas>
+    </div>
+
+    <!-- Burnout Effect -->
+    <div class="panel">
+      <h2><span class="dot"></span>Burnout Effect -- CPR Decay Over Pool Age</h2>
+      <canvas id="burnoutCanvas" height="220"></canvas>
+    </div>
+
+    <!-- Cash Flow Table -->
+    <div class="panel">
+      <h2><span class="dot"></span>Monthly Cash Flow Schedule</h2>
+      <div class="cf-table-wrap">
+        <table id="cfTable">
+          <thead><tr><th>Month</th><th>Beg Balance</th><th>Sched Pmt</th><th>Interest</th><th>Sched Princ</th><th>Prepayment</th><th>Total Princ</th><th>End Balance</th><th>CPR</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Negative Convexity Section -->
+<div class="convexity-section">
+  <div class="convexity-panel">
+    <h2><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent)"></span> Negative Convexity &amp; Duration</h2>
+    <div class="conv-text">
+      <p>Mortgage-backed securities exhibit <span class="conv-highlight">negative convexity</span> because homeowners prepay when rates fall. As rates drop, expected cash flows shorten (homeowners refinance), so the MBS price rises less than a comparable non-callable bond.</p>
+      <p>Conversely, when rates rise, prepayments slow and the MBS extends in duration -- it falls more in price than expected. This asymmetry means MBS investors are <span class="conv-highlight">short an option</span> to the homeowner.</p>
+      <p>The <span class="conv-highlight">effective duration</span> of an MBS changes with the rate environment. Below, watch how duration shifts as you adjust the mortgage rate and market rate above.</p>
+    </div>
+    <div class="duration-display">
+      <div class="dur-label">Effective Duration</div>
+      <div class="dur-value" id="durValue">--</div>
+      <div class="dur-sub">years</div>
+      <div class="dur-row">
+        <div class="dur-item"><div class="di-val pos-conv" id="durMod">--</div><div class="di-label">Modified Duration</div></div>
+        <div class="dur-item"><div class="di-val neg-conv" id="durConv">--</div><div class="di-label">Convexity</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Prepayment Model (CPR) &middot; Mortgage &amp; Embedded Options spoke &middot; Fixed Income Model Zoo
+</footer>
+
+<script>
+// ============================================================
+// UTILITY & MODEL FUNCTIONS
+// ============================================================
+
+function psaCPR(month, psaSpeed) {
+  // 100% PSA: CPR ramps linearly from 0.2% at month 1 to 6% at month 30, then flat 6%
+  const baseCPR = month <= 30 ? (6.0 / 30) * month : 6.0;
+  return baseCPR * (psaSpeed / 100);
+}
+
+function cprToSMM(cpr) {
+  return 1 - Math.pow(1 - cpr / 100, 1 / 12);
+}
+
+function smmToCPR(smm) {
+  return (1 - Math.pow(1 - smm, 12)) * 100;
+}
+
+function refinancingIncentive(wac, marketRate) {
+  return wac - marketRate; // in percentage points
+}
+
+// S-curve model for CPR based on incentive
+function sCurveCPR(incentive, maxCPR) {
+  // logistic S-curve
+  if (!maxCPR) maxCPR = 60;
+  const k = 2.5; // steepness
+  const x0 = 1.5; // midpoint incentive
+  return maxCPR / (1 + Math.exp(-k * (incentive - x0)));
+}
+
+// Burnout multiplier: decays as pool seasons under high incentive
+function burnoutMultiplier(poolFactor) {
+  // lower pool factor = more burnout
+  return Math.pow(poolFactor, 0.5);
+}
+
+// Full CPR model combining PSA, incentive, and burnout
+function fullCPR(month, psaSpeed, wac, marketRate, poolFactor) {
+  const basePSA = psaCPR(month, psaSpeed);
+  const incentive = refinancingIncentive(wac, marketRate);
+  const incentiveMultiplier = incentive > 0 ? 1 + (incentive / 3) : Math.max(0.2, 1 + incentive / 5);
+  const burnout = burnoutMultiplier(poolFactor);
+  return Math.max(0, Math.min(80, basePSA * incentiveMultiplier * burnout));
+}
+
+// Monthly payment for a level-pay mortgage
+function monthlyPayment(balance, annualRate, remainingMonths) {
+  const r = annualRate / 100 / 12;
+  if (r === 0) return balance / remainingMonths;
+  return balance * r * Math.pow(1 + r, remainingMonths) / (Math.pow(1 + r, remainingMonths) - 1);
+}
+
+// Generate amortization schedule
+function generateSchedule(origBalance, wac, startMonth, totalMonths, psaSpeed, marketRate) {
+  const schedule = [];
+  let balance = origBalance;
+  const term = totalMonths;
+  let pf = 1.0;
+
+  for (let m = 1; m <= Math.min(totalMonths, 360); m++) {
+    const age = startMonth + m;
+    const remMonths = term - m + 1;
+    if (remMonths <= 0 || balance <= 0.01) break;
+
+    const monthlyRate = wac / 100 / 12;
+    const pmt = monthlyPayment(balance, wac, remMonths);
+    const interest = balance * monthlyRate;
+    const schedPrinc = pmt - interest;
+
+    pf = balance / origBalance;
+    const cpr = fullCPR(age, psaSpeed, wac, marketRate, pf);
+    const smm = cprToSMM(cpr);
+    const prepayment = (balance - schedPrinc) * smm;
+    const totalPrinc = schedPrinc + prepayment;
+    const endBalance = Math.max(0, balance - totalPrinc);
+
+    schedule.push({
+      month: m,
+      age: age,
+      begBalance: balance,
+      payment: pmt,
+      interest: interest,
+      schedPrinc: schedPrinc,
+      prepayment: prepayment,
+      totalPrinc: totalPrinc,
+      endBalance: endBalance,
+      cpr: cpr,
+      smm: smm
+    });
+
+    balance = endBalance;
+  }
+  return schedule;
+}
+
+// Weighted average life
+function calcWAL(schedule, origBalance) {
+  let sumWeighted = 0, sumPrinc = 0;
+  schedule.forEach(r => {
+    sumWeighted += r.totalPrinc * (r.month / 12);
+    sumPrinc += r.totalPrinc;
+  });
+  return sumPrinc > 0 ? sumWeighted / sumPrinc : 0;
+}
+
+// ============================================================
+// CANVAS DRAWING UTILITIES
+// ============================================================
+
+function setupCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+function drawGrid(ctx, x, y, w, h, xTicks, yTicks, yLabel) {
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= yTicks; i++) {
+    const yy = y + (h / yTicks) * i;
+    ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); ctx.stroke();
+  }
+  for (let i = 0; i <= xTicks; i++) {
+    const xx = x + (w / xTicks) * i;
+    ctx.beginPath(); ctx.moveTo(xx, y); ctx.lineTo(xx, y + h); ctx.stroke();
+  }
+}
+
+function drawLine(ctx, points, color, lineWidth) {
+  if (points.length < 2) return;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth || 2;
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+  ctx.stroke();
+}
+
+function drawArea(ctx, points, baseY, color) {
+  if (points.length < 2) return;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], baseY);
+  points.forEach(p => ctx.lineTo(p[0], p[1]));
+  ctx.lineTo(points[points.length - 1][0], baseY);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ============================================================
+// STATE
+// ============================================================
+
+let psaSpeed = 100;
+const origBalance = 100000;
+const totalMonths = 360;
+
+function getInputs() {
+  return {
+    wac: parseFloat(document.getElementById('sWAC').value),
+    marketRate: parseFloat(document.getElementById('sMkt').value),
+    age: parseInt(document.getElementById('sAge').value),
+    poolFactor: parseFloat(document.getElementById('sPF').value)
+  };
+}
+
+// ============================================================
+// RENDER FUNCTIONS
+// ============================================================
+
+function renderWaterfall() {
+  const canvas = document.getElementById('waterfallCanvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+  const inp = getInputs();
+  const schedule = generateSchedule(origBalance, inp.wac, inp.age, totalMonths, psaSpeed, inp.marketRate);
+
+  ctx.clearRect(0, 0, w, h);
+
+  const pad = { l: 55, r: 20, t: 20, b: 40 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  // Show first 60 months for waterfall detail
+  const months = schedule.slice(0, 60);
+  if (months.length === 0) return;
+
+  const maxCF = Math.max(...months.map(r => r.interest + r.schedPrinc + r.prepayment)) * 1.1;
+  const barW = Math.max(2, (cw / months.length) - 2);
+
+  // Y-axis labels
+  ctx.fillStyle = '#484f58';
+  ctx.font = '10px -apple-system, sans-serif';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const val = (maxCF / 5) * (5 - i);
+    const yy = pad.t + (ch / 5) * i;
+    ctx.fillText('$' + Math.round(val).toLocaleString(), pad.l - 8, yy + 3);
+  }
+
+  // X-axis
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(months.length / 10));
+  months.forEach((r, i) => {
+    if (i % step === 0) {
+      ctx.fillText('M' + r.month, pad.l + i * (cw / months.length) + barW / 2, h - pad.b + 15);
+    }
+  });
+
+  drawGrid(ctx, pad.l, pad.t, cw, ch, 10, 5);
+
+  // Animated bars
+  const t = (Date.now() % 3000) / 3000;
+
+  months.forEach((r, i) => {
+    const x = pad.l + i * (cw / months.length) + 1;
+
+    // Interest portion (blue)
+    const intH = (r.interest / maxCF) * ch;
+    const schedH = (r.schedPrinc / maxCF) * ch;
+    const prepH = (r.prepayment / maxCF) * ch;
+
+    const baseY = pad.t + ch;
+
+    // Interest
+    ctx.fillStyle = 'rgba(88,166,255,0.7)';
+    ctx.fillRect(x, baseY - intH - schedH - prepH, barW, intH);
+
+    // Scheduled Principal
+    ctx.fillStyle = 'rgba(63,185,80,0.7)';
+    ctx.fillRect(x, baseY - schedH - prepH, barW, schedH);
+
+    // Prepayment (with shimmer animation)
+    const shimmer = 0.6 + 0.3 * Math.sin(t * Math.PI * 2 + i * 0.2);
+    ctx.fillStyle = `rgba(210,168,255,${shimmer})`;
+    ctx.fillRect(x, baseY - prepH, barW, prepH);
+  });
+
+  // Legend
+  const legendX = pad.l + 10;
+  const legendY = pad.t + 10;
+  const items = [['Interest', 'rgba(88,166,255,0.8)'], ['Sched. Principal', 'rgba(63,185,80,0.8)'], ['Prepayment', 'rgba(210,168,255,0.8)']];
+  items.forEach((item, i) => {
+    ctx.fillStyle = item[1];
+    ctx.fillRect(legendX + i * 130, legendY, 12, 12);
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(item[0], legendX + i * 130 + 16, legendY + 10);
+  });
+}
+
+function renderPSARamp() {
+  const canvas = document.getElementById('psaCanvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+  const inp = getInputs();
+
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 45, r: 15, t: 15, b: 35 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  const speeds = [100, 200, 300];
+  const colors = ['#d2a8ff', '#a371f7', '#8957e5'];
+  const maxMonth = 60;
+  const maxCPR = psaSpeed <= 200 ? 20 : psaSpeed <= 300 ? 25 : 35;
+
+  drawGrid(ctx, pad.l, pad.t, cw, ch, 6, 4);
+
+  // Y-axis
+  ctx.fillStyle = '#484f58'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const val = (maxCPR / 4) * (4 - i);
+    ctx.fillText(val.toFixed(0) + '%', pad.l - 6, pad.t + (ch / 4) * i + 3);
+  }
+  // X-axis
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 6; i++) {
+    ctx.fillText((maxMonth / 6 * i).toFixed(0), pad.l + (cw / 6) * i, h - pad.b + 15);
+  }
+
+  // Draw PSA curves
+  [50, 100, 150, 200, 300].forEach((spd, si) => {
+    const pts = [];
+    for (let m = 1; m <= maxMonth; m++) {
+      const cpr = psaCPR(m, spd);
+      const x = pad.l + ((m - 1) / (maxMonth - 1)) * cw;
+      const y = pad.t + ch - (cpr / maxCPR) * ch;
+      pts.push([x, y]);
+    }
+    const active = spd === psaSpeed;
+    const c = active ? '#d2a8ff' : '#30363d';
+    drawLine(ctx, pts, c, active ? 2.5 : 1);
+    if (active) drawArea(ctx, pts, pad.t + ch, 'rgba(210,168,255,0.1)');
+
+    // Label
+    const lastPt = pts[pts.length - 1];
+    ctx.fillStyle = active ? '#d2a8ff' : '#484f58';
+    ctx.font = (active ? 'bold ' : '') + '9px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(spd + '% PSA', lastPt[0] - 45, lastPt[1] - 5);
+  });
+
+  // Current month marker
+  if (inp.age <= maxMonth) {
+    const cpr = psaCPR(inp.age, psaSpeed);
+    const mx = pad.l + ((inp.age - 1) / (maxMonth - 1)) * cw;
+    const my = pad.t + ch - (cpr / maxCPR) * ch;
+    ctx.beginPath(); ctx.arc(mx, my, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#d2a8ff'; ctx.fill();
+    ctx.strokeStyle = '#0d1117'; ctx.lineWidth = 2; ctx.stroke();
+  }
+}
+
+function renderSCurve() {
+  const canvas = document.getElementById('scurveCanvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+  const inp = getInputs();
+
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 45, r: 15, t: 15, b: 35 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  const minInc = -3, maxInc = 5;
+  const maxCPR = 65;
+
+  drawGrid(ctx, pad.l, pad.t, cw, ch, 8, 4);
+
+  // Y-axis
+  ctx.fillStyle = '#484f58'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const val = (maxCPR / 4) * (4 - i);
+    ctx.fillText(val.toFixed(0) + '%', pad.l - 6, pad.t + (ch / 4) * i + 3);
+  }
+  // X-axis
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 8; i++) {
+    const val = minInc + (maxInc - minInc) / 8 * i;
+    ctx.fillText(val.toFixed(1) + '%', pad.l + (cw / 8) * i, h - pad.b + 15);
+  }
+  ctx.fillText('Rate Incentive (WAC - Mkt)', pad.l + cw / 2, h - 3);
+
+  // S-curve
+  const pts = [];
+  for (let i = 0; i <= 200; i++) {
+    const inc = minInc + (maxInc - minInc) * i / 200;
+    const cpr = sCurveCPR(inc, 60);
+    const x = pad.l + (i / 200) * cw;
+    const y = pad.t + ch - (cpr / maxCPR) * ch;
+    pts.push([x, y]);
+  }
+  drawArea(ctx, pts, pad.t + ch, 'rgba(210,168,255,0.08)');
+  drawLine(ctx, pts, '#d2a8ff', 2.5);
+
+  // Zero line
+  const zeroX = pad.l + (0 - minInc) / (maxInc - minInc) * cw;
+  ctx.strokeStyle = 'rgba(248,81,73,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(zeroX, pad.t); ctx.lineTo(zeroX, pad.t + ch); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Current incentive marker
+  const curInc = inp.wac - inp.marketRate;
+  if (curInc >= minInc && curInc <= maxInc) {
+    const cpr = sCurveCPR(curInc, 60);
+    const mx = pad.l + ((curInc - minInc) / (maxInc - minInc)) * cw;
+    const my = pad.t + ch - (cpr / maxCPR) * ch;
+    ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#d2a8ff'; ctx.fill();
+    ctx.strokeStyle = '#0d1117'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#e6edf3'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(cpr.toFixed(1) + '% CPR', mx + 10, my - 5);
+  }
+}
+
+function renderBalanceChart() {
+  const canvas = document.getElementById('balanceCanvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+  const inp = getInputs();
+
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 60, r: 100, t: 20, b: 35 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  drawGrid(ctx, pad.l, pad.t, cw, ch, 10, 5);
+
+  const scenarios = [
+    { label: 'No Prepay', psa: 0, color: '#484f58', dash: [4, 4] },
+    { label: '100% PSA', psa: 100, color: '#58a6ff', dash: [] },
+    { label: '200% PSA', psa: 200, color: '#3fb950', dash: [] },
+    { label: '300% PSA', psa: 300, color: '#d2a8ff', dash: [] },
+    { label: '400% PSA', psa: 400, color: '#f85149', dash: [] }
+  ];
+
+  const maxMonth = 360;
+
+  // Y-axis
+  ctx.fillStyle = '#484f58'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const val = origBalance * (5 - i) / 5;
+    ctx.fillText('$' + (val / 1000).toFixed(0) + 'k', pad.l - 8, pad.t + (ch / 5) * i + 3);
+  }
+  // X-axis
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 10; i++) {
+    const yr = (30 / 10) * i;
+    ctx.fillText(yr.toFixed(0) + 'y', pad.l + (cw / 10) * i, h - pad.b + 15);
+  }
+
+  scenarios.forEach(sc => {
+    const sched = generateSchedule(origBalance, inp.wac, inp.age, totalMonths, sc.psa, inp.marketRate);
+    const pts = [[pad.l, pad.t]];
+    sched.forEach(r => {
+      const x = pad.l + (r.month / maxMonth) * cw;
+      const y = pad.t + ch - (r.endBalance / origBalance) * ch;
+      pts.push([x, y]);
+    });
+    ctx.setLineDash(sc.dash);
+    drawLine(ctx, pts, sc.color, 2);
+    ctx.setLineDash([]);
+
+    // End label
+    const last = pts[pts.length - 1];
+    ctx.fillStyle = sc.color;
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(sc.label, last[0] + 5, last[1] + 3);
+  });
+}
+
+function renderBurnout() {
+  const canvas = document.getElementById('burnoutCanvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 45, r: 15, t: 15, b: 35 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  drawGrid(ctx, pad.l, pad.t, cw, ch, 10, 4);
+
+  const poolFactors = [1.0, 0.8, 0.6, 0.4, 0.2];
+  const colors = ['#d2a8ff', '#a371f7', '#8957e5', '#7c3aed', '#5b21b6'];
+  const maxMonth = 120;
+  const maxCPR = 30;
+
+  // Y-axis
+  ctx.fillStyle = '#484f58'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const val = (maxCPR / 4) * (4 - i);
+    ctx.fillText(val.toFixed(0) + '%', pad.l - 6, pad.t + (ch / 4) * i + 3);
+  }
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 10; i++) {
+    ctx.fillText((maxMonth / 10 * i).toFixed(0), pad.l + (cw / 10) * i, h - pad.b + 15);
+  }
+  ctx.fillText('Month', pad.l + cw / 2, h - 3);
+
+  poolFactors.forEach((pf, pi) => {
+    const pts = [];
+    for (let m = 1; m <= maxMonth; m++) {
+      const cpr = fullCPR(m, 200, 7, 5, pf);
+      const x = pad.l + ((m - 1) / (maxMonth - 1)) * cw;
+      const y = pad.t + ch - (Math.min(cpr, maxCPR) / maxCPR) * ch;
+      pts.push([x, y]);
+    }
+    drawLine(ctx, pts, colors[pi], 2);
+    const last = pts[pts.length - 1];
+    ctx.fillStyle = colors[pi]; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('PF=' + pf.toFixed(1), last[0] - 35, last[1] - 5);
+  });
+}
+
+function renderTable() {
+  const inp = getInputs();
+  const schedule = generateSchedule(origBalance, inp.wac, inp.age, totalMonths, psaSpeed, inp.marketRate);
+  const tbody = document.querySelector('#cfTable tbody');
+
+  // Show first 60 months for readability
+  const rows = schedule.slice(0, 60);
+  let html = '';
+  rows.forEach(r => {
+    html += '<tr>' +
+      '<td>' + r.month + '</td>' +
+      '<td>$' + r.begBalance.toLocaleString(undefined, { maximumFractionDigits: 0 }) + '</td>' +
+      '<td>$' + r.payment.toLocaleString(undefined, { maximumFractionDigits: 0 }) + '</td>' +
+      '<td>$' + r.interest.toLocaleString(undefined, { maximumFractionDigits: 0 }) + '</td>' +
+      '<td>$' + r.schedPrinc.toLocaleString(undefined, { maximumFractionDigits: 0 }) + '</td>' +
+      '<td style="color:#d2a8ff">$' + r.prepayment.toLocaleString(undefined, { maximumFractionDigits: 0 }) + '</td>' +
+      '<td>$' + r.totalPrinc.toLocaleString(undefined, { maximumFractionDigits: 0 }) + '</td>' +
+      '<td>$' + r.endBalance.toLocaleString(undefined, { maximumFractionDigits: 0 }) + '</td>' +
+      '<td>' + r.cpr.toFixed(2) + '%</td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function updateStats() {
+  const inp = getInputs();
+  const schedule = generateSchedule(origBalance, inp.wac, inp.age, totalMonths, psaSpeed, inp.marketRate);
+
+  const cpr = schedule.length > 0 ? schedule[0].cpr : 0;
+  const smm = schedule.length > 0 ? schedule[0].smm : 0;
+  const incentive = inp.wac - inp.marketRate;
+  const wal = calcWAL(schedule, origBalance);
+
+  document.getElementById('statCPR').textContent = cpr.toFixed(2) + '%';
+  document.getElementById('statSMM').textContent = (smm * 100).toFixed(3) + '%';
+  document.getElementById('statInc').textContent = (incentive >= 0 ? '+' : '') + incentive.toFixed(2) + '%';
+  document.getElementById('statWAL').textContent = wal.toFixed(1);
+
+  // Duration approximation
+  // Effective duration ~ WAL * discount factor adjustment
+  const effDur = wal * 0.85;
+  const modDur = effDur / (1 + inp.wac / 200);
+  // Negative convexity estimate: more negative when incentive is positive
+  const convexity = incentive > 0 ? -2.5 * incentive : 0.5;
+
+  document.getElementById('durValue').textContent = effDur.toFixed(2);
+  document.getElementById('durMod').textContent = modDur.toFixed(2);
+  document.getElementById('durConv').textContent = convexity.toFixed(2);
+  document.getElementById('durConv').className = convexity < 0 ? 'di-val neg-conv' : 'di-val pos-conv';
+}
+
+function updateLabels() {
+  document.getElementById('vWAC').textContent = parseFloat(document.getElementById('sWAC').value).toFixed(2) + '%';
+  document.getElementById('vMkt').textContent = parseFloat(document.getElementById('sMkt').value).toFixed(2) + '%';
+  document.getElementById('vAge').textContent = document.getElementById('sAge').value;
+  document.getElementById('vPF').textContent = parseFloat(document.getElementById('sPF').value).toFixed(2);
+}
+
+function renderAll() {
+  updateLabels();
+  updateStats();
+  renderWaterfall();
+  renderPSARamp();
+  renderSCurve();
+  renderBalanceChart();
+  renderBurnout();
+  renderTable();
+}
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+
+['sWAC', 'sMkt', 'sAge', 'sPF'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderAll);
+});
+
+document.querySelectorAll('.psa-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.psa-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    psaSpeed = parseInt(this.dataset.psa);
+    renderAll();
+  });
+});
+
+// Animated waterfall shimmer
+let animFrame;
+function animateWaterfall() {
+  renderWaterfall();
+  animFrame = requestAnimationFrame(animateWaterfall);
+}
+
+// Initial render
+renderAll();
+animateWaterfall();
+
+// Resize handler
+window.addEventListener('resize', () => {
+  cancelAnimationFrame(animFrame);
+  renderAll();
+  animateWaterfall();
+});
+</script>
+</body>
+</html>

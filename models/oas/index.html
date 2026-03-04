@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option-Adjusted Spread (OAS) | Mortgage &amp; Embedded Options</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;--dim:#484f58;
+  --accent:#e2cbff;--accent2:#c9a5f7;--accent3:#a371f7;
+  --green:#3fb950;--red:#f85149;--yellow:#d29922;--blue:#58a6ff;
+  --orange:#d18616;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;line-height:1.6;overflow-x:hidden}
+
+.top-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:.6rem 1.5rem;display:flex;align-items:center;gap:.75rem;position:sticky;top:0;z-index:100}
+.top-bar a{color:var(--muted);text-decoration:none;font-size:.85rem}
+.top-bar a:hover{color:var(--accent)}
+.top-bar .sep{color:var(--dim)}
+.top-bar .current{color:var(--accent);font-weight:600}
+.badge{display:inline-block;padding:.15rem .55rem;border-radius:12px;font-size:.7rem;font-weight:600;background:rgba(226,203,255,.15);color:var(--accent);margin-left:.5rem}
+.badge.adv{background:rgba(248,81,73,.12);color:var(--red)}
+
+.hero{padding:3rem 2rem 2rem;text-align:center;max-width:900px;margin:0 auto}
+.hero h1{font-size:2.2rem;font-weight:700;margin-bottom:.75rem;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero .subtitle{color:var(--muted);font-size:1.05rem;max-width:700px;margin:0 auto 1.5rem}
+.formula-box{display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.5rem;font-family:'Courier New',monospace;font-size:.95rem;color:var(--accent);margin-bottom:1rem;max-width:100%;overflow-x:auto}
+.key-insight{background:linear-gradient(135deg,rgba(226,203,255,.08),rgba(163,113,247,.05));border:1px solid rgba(226,203,255,.2);border-radius:12px;padding:1rem 1.5rem;max-width:650px;margin:1rem auto 0;font-size:.95rem;color:var(--muted)}
+.key-insight strong{color:var(--accent)}
+
+.dashboard{max-width:1300px;margin:0 auto;padding:1.5rem;display:grid;grid-template-columns:320px 1fr;gap:1.5rem}
+@media(max-width:900px){.dashboard{grid-template-columns:1fr}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem}
+.panel h2{font-size:1rem;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.panel h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.panel p.desc{font-size:.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.5}
+
+.control-group{margin-bottom:1.25rem}
+.control-group label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.35rem;font-weight:500}
+.control-group .val{float:right;color:var(--accent);font-weight:600;font-family:'Courier New',monospace}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:var(--border);outline:none;margin-top:.25rem}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 8px rgba(226,203,255,.4)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:none}
+
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1rem}
+.stat-row.triple{grid-template-columns:1fr 1fr 1fr}
+.stat{background:rgba(226,203,255,.05);border:1px solid rgba(226,203,255,.1);border-radius:10px;padding:.75rem;text-align:center}
+.stat .label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.stat .value{font-size:1.15rem;font-weight:700;color:var(--accent);font-family:'Courier New',monospace;margin-top:.15rem}
+.stat .value.green{color:var(--green)}
+.stat .value.red{color:var(--red)}
+.stat .value.blue{color:var(--blue)}
+.stat .value.yellow{color:var(--yellow)}
+
+.main-area{display:flex;flex-direction:column;gap:1.5rem}
+
+canvas{width:100%!important;border-radius:8px}
+
+.spread-comparison{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-top:1rem}
+@media(max-width:700px){.spread-comparison{grid-template-columns:1fr}}
+.spread-card{background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center}
+.spread-card .sc-name{font-size:.8rem;color:var(--muted);margin-bottom:.35rem;font-weight:600}
+.spread-card .sc-value{font-size:1.5rem;font-weight:700;font-family:'Courier New',monospace;margin-bottom:.25rem}
+.spread-card .sc-desc{font-size:.72rem;color:var(--dim);line-height:1.4}
+
+.compare-section{max-width:1300px;margin:0 auto;padding:0 1.5rem 1.5rem}
+.compare-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem}
+.compare-panel h2{font-size:1.1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+@media(max-width:900px){.compare-grid{grid-template-columns:1fr}}
+.compare-text{color:var(--muted);font-size:.88rem;line-height:1.7}
+.compare-text p{margin-bottom:.75rem}
+.compare-text .hl{color:var(--accent);font-weight:600}
+.compare-text .hl-blue{color:var(--blue);font-weight:600}
+.compare-text .hl-green{color:var(--green);font-weight:600}
+.compare-text .hl-red{color:var(--red);font-weight:600}
+.compare-text ul{padding-left:1.2rem;margin:.5rem 0}
+.compare-text li{margin-bottom:.35rem}
+
+footer{text-align:center;padding:2rem;color:var(--dim);font-size:.75rem;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="../../">FI Zoo</a><span class="sep">/</span>
+  <a href="../../#mortgage">Mortgage</a><span class="sep">/</span>
+  <span class="current">OAS</span>
+  <span class="badge adv">ADVANCED</span>
+</div>
+
+<div class="hero">
+  <h1>Option-Adjusted Spread (OAS)</h1>
+  <p class="subtitle">Decomposes bond spread into option cost and residual compensation by simulating cash flows across rate paths.</p>
+  <div class="formula-box">P = (1/N) &Sigma;<sub>paths</sub> &Sigma;<sub>t</sub> CF<sub>t</sub> / &Pi;(1 + r<sub>s</sub> + OAS)</div>
+  <div class="key-insight"><strong>Key Insight:</strong> OAS strips out option cost to reveal pure credit/liquidity compensation -- the spread an investor truly earns after accounting for embedded optionality.</div>
+</div>
+
+<div class="dashboard">
+  <!-- LEFT: Controls -->
+  <div style="display:flex;flex-direction:column;gap:1.5rem">
+    <div class="panel">
+      <h2><span class="dot"></span>Bond Parameters</h2>
+      <div class="control-group">
+        <label>Bond Price <span class="val" id="vPrice">98.50</span></label>
+        <input type="range" id="sPrice" min="85" max="115" step="0.25" value="98.5">
+      </div>
+      <div class="control-group">
+        <label>Coupon Rate <span class="val" id="vCoupon">6.00%</span></label>
+        <input type="range" id="sCoupon" min="2" max="10" step="0.25" value="6">
+      </div>
+      <div class="control-group">
+        <label>Maturity (years) <span class="val" id="vMat">10</span></label>
+        <input type="range" id="sMat" min="1" max="30" step="1" value="10">
+      </div>
+      <div class="control-group">
+        <label>Benchmark Rate <span class="val" id="vBench">4.50%</span></label>
+        <input type="range" id="sBench" min="1" max="10" step="0.25" value="4.5">
+      </div>
+      <div class="control-group">
+        <label>Rate Volatility <span class="val" id="vVol">1.20%</span></label>
+        <input type="range" id="sVol" min="0.25" max="3" step="0.05" value="1.2">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="dot"></span>Callable Bond Settings</h2>
+      <p class="desc">Toggle a call option to see how OAS isolates credit spread from option cost.</p>
+      <div class="control-group">
+        <label>Call Price <span class="val" id="vCall">100.00</span></label>
+        <input type="range" id="sCall" min="100" max="105" step="0.5" value="100">
+      </div>
+      <div class="control-group">
+        <label>Call Protection (years) <span class="val" id="vCallProt">3</span></label>
+        <input type="range" id="sCallProt" min="0" max="10" step="1" value="3">
+      </div>
+      <div class="control-group">
+        <label>Number of Paths <span class="val" id="vPaths">200</span></label>
+        <input type="range" id="sPaths" min="50" max="500" step="50" value="200">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="dot"></span>Computed Spreads</h2>
+      <div class="stat-row triple">
+        <div class="stat"><div class="label">OAS</div><div class="value" id="statOAS">--</div></div>
+        <div class="stat"><div class="label">Z-Spread</div><div class="value blue" id="statZ">--</div></div>
+        <div class="stat"><div class="label">Nominal</div><div class="value yellow" id="statNom">--</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="label">Option Cost</div><div class="value red" id="statOC">--</div></div>
+        <div class="stat"><div class="label">Model Price</div><div class="value green" id="statMP">--</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Visuals -->
+  <div class="main-area">
+    <!-- Spread Decomposition -->
+    <div class="panel">
+      <h2><span class="dot"></span>Spread Decomposition: Total Spread = OAS + Option Cost</h2>
+      <canvas id="decompCanvas" height="280"></canvas>
+      <div class="spread-comparison">
+        <div class="spread-card">
+          <div class="sc-name">Nominal Spread</div>
+          <div class="sc-value" style="color:var(--yellow)" id="scNom">--</div>
+          <div class="sc-desc">Yield minus benchmark yield. Simplest measure, ignores term structure and optionality.</div>
+        </div>
+        <div class="spread-card">
+          <div class="sc-name">Z-Spread</div>
+          <div class="sc-value" style="color:var(--blue)" id="scZ">--</div>
+          <div class="sc-desc">Constant spread over the spot curve that reprices the bond. Accounts for term structure but not options.</div>
+        </div>
+        <div class="spread-card">
+          <div class="sc-name">OAS</div>
+          <div class="sc-value" style="color:var(--accent)" id="scOAS">--</div>
+          <div class="sc-desc">Spread after stripping option cost via Monte Carlo simulation. Reveals pure credit/liquidity premium.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rate Paths -->
+    <div class="panel">
+      <h2><span class="dot"></span>Simulated Interest Rate Paths</h2>
+      <p class="desc">Each path generates different cash flows due to prepayment/call optionality. OAS is the spread that, on average across all paths, reprices the bond.</p>
+      <canvas id="pathsCanvas" height="300"></canvas>
+    </div>
+
+    <!-- Cash Flow Fan -->
+    <div class="panel">
+      <h2><span class="dot"></span>Cash Flow Variation Across Paths</h2>
+      <p class="desc">Shows how embedded options create different cash flow profiles depending on the rate path. Dark bands = most likely outcomes.</p>
+      <canvas id="cfFanCanvas" height="260"></canvas>
+    </div>
+
+    <!-- OAS Sensitivity -->
+    <div class="panel">
+      <h2><span class="dot"></span>OAS Solver -- Price Sensitivity</h2>
+      <p class="desc">Watch how OAS changes as you adjust the bond price above. Higher price = lower OAS (less compensation needed).</p>
+      <canvas id="oasSensCanvas" height="240"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Compare Section -->
+<div class="compare-section">
+  <div class="compare-panel">
+    <h2><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent)"></span> When Spreads Diverge: OAS vs Z-Spread vs Nominal</h2>
+    <div class="compare-grid">
+      <div class="compare-text">
+        <p>For a <span class="hl">bullet bond</span> (no embedded options), all three spread measures converge. The differences emerge when optionality is present:</p>
+        <ul>
+          <li><span class="hl-yellow">Nominal Spread</span> simply subtracts one yield from another. It ignores the shape of the yield curve and any options.</li>
+          <li><span class="hl-blue">Z-Spread</span> properly accounts for term structure by using the full spot rate curve, but still assumes deterministic cash flows (no optionality).</li>
+          <li><span class="hl">OAS</span> goes further: it simulates cash flows across many rate paths (Monte Carlo), allowing prepayment or call exercise to vary by path. The resulting spread reflects <em>only</em> credit and liquidity risk.</li>
+        </ul>
+        <p>The gap between Z-Spread and OAS equals the <span class="hl-red">option cost</span>: the compensation investors lose to the embedded option.</p>
+      </div>
+      <div class="compare-text">
+        <p><strong>Callable Bond Example:</strong></p>
+        <p>A corporate callable bond trades at 98.50 with a 6% coupon. The issuer can call at par after 3 years.</p>
+        <ul>
+          <li>The <span class="hl-yellow">nominal spread</span> might be 180 bps</li>
+          <li>The <span class="hl-blue">Z-spread</span> might be 165 bps (correcting for curve shape)</li>
+          <li>The <span class="hl">OAS</span> might be only 120 bps</li>
+          <li>Option cost = Z-Spread - OAS = <span class="hl-red">45 bps</span></li>
+        </ul>
+        <p>The investor appears to earn 165 bps over Treasuries, but 45 bps of that compensates for the call option the issuer holds. The <span class="hl">true credit/liquidity compensation</span> is only 120 bps.</p>
+        <p>For MBS, the option cost can be much larger because prepayment optionality is exercised more frequently and less predictably than corporate calls.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Option-Adjusted Spread (OAS) &middot; Mortgage &amp; Embedded Options spoke &middot; Fixed Income Model Zoo
+</footer>
+
+<script>
+// ============================================================
+// UTILITY FUNCTIONS
+// ============================================================
+
+function setupCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+function drawGrid(ctx, x, y, w, h, xTicks, yTicks) {
+  ctx.strokeStyle = '#21262d';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= yTicks; i++) {
+    const yy = y + (h / yTicks) * i;
+    ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); ctx.stroke();
+  }
+  for (let i = 0; i <= xTicks; i++) {
+    const xx = x + (w / xTicks) * i;
+    ctx.beginPath(); ctx.moveTo(xx, y); ctx.lineTo(xx, y + h); ctx.stroke();
+  }
+}
+
+function drawLine(ctx, points, color, lineWidth) {
+  if (points.length < 2) return;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth || 2;
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+  ctx.stroke();
+}
+
+// Simple seeded random for reproducibility
+let seed = 42;
+function seededRandom() {
+  seed = (seed * 16807 + 0) % 2147483647;
+  return (seed - 1) / 2147483646;
+}
+
+function gaussianRandom() {
+  let u, v, s;
+  do {
+    u = seededRandom() * 2 - 1;
+    v = seededRandom() * 2 - 1;
+    s = u * u + v * v;
+  } while (s >= 1 || s === 0);
+  return u * Math.sqrt(-2 * Math.log(s) / s);
+}
+
+// ============================================================
+// RATE PATH SIMULATION
+// ============================================================
+
+function simulateRatePaths(benchRate, vol, maturity, nPaths, dt) {
+  if (!dt) dt = 0.5; // semi-annual
+  const steps = Math.ceil(maturity / dt);
+  const paths = [];
+  const kappa = 0.15; // mean-reversion speed
+  const theta = benchRate / 100; // long-run mean
+
+  for (let p = 0; p < nPaths; p++) {
+    const path = [benchRate / 100];
+    for (let s = 1; s <= steps; s++) {
+      const prev = path[s - 1];
+      const dr = kappa * (theta - prev) * dt + (vol / 100) * Math.sqrt(dt) * gaussianRandom();
+      path.push(Math.max(0.001, prev + dr));
+    }
+    paths.push(path);
+  }
+  return paths;
+}
+
+// ============================================================
+// BOND PRICING & OAS SOLVER
+// ============================================================
+
+function priceBondOnPath(path, couponRate, maturity, callPrice, callProtection, oas, dt) {
+  if (!dt) dt = 0.5;
+  const steps = Math.ceil(maturity / dt);
+  const couponPerPeriod = (couponRate / 100) * dt * 100; // per 100 face
+  let pv = 0;
+  let discFactor = 1;
+  let face = 100;
+  let called = false;
+
+  for (let s = 1; s <= steps; s++) {
+    const t = s * dt;
+    const r = path[Math.min(s, path.length - 1)];
+    discFactor *= 1 / (1 + (r + oas / 10000) * dt);
+
+    // Check if called
+    if (callPrice && t > callProtection) {
+      // Call if rate is low enough (bond value > call price)
+      const remainSteps = steps - s;
+      if (remainSteps > 0 && r < couponRate / 100 - 0.005) {
+        pv += (couponPerPeriod + callPrice) * discFactor;
+        called = true;
+        break;
+      }
+    }
+
+    if (s === steps) {
+      pv += (couponPerPeriod + face) * discFactor;
+    } else {
+      pv += couponPerPeriod * discFactor;
+    }
+  }
+  return pv;
+}
+
+function priceWithOAS(paths, couponRate, maturity, callPrice, callProtection, oas) {
+  let sum = 0;
+  paths.forEach(path => {
+    sum += priceBondOnPath(path, couponRate, maturity, callPrice, callProtection, oas);
+  });
+  return sum / paths.length;
+}
+
+function solveOAS(paths, targetPrice, couponRate, maturity, callPrice, callProtection) {
+  // Bisection method
+  let lo = -200, hi = 800;
+  for (let iter = 0; iter < 100; iter++) {
+    const mid = (lo + hi) / 2;
+    const p = priceWithOAS(paths, couponRate, maturity, callPrice, callProtection, mid);
+    if (Math.abs(p - targetPrice) < 0.001) return mid;
+    if (p > targetPrice) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// Z-Spread: no optionality, deterministic
+function solveZSpread(couponRate, maturity, benchRate, targetPrice) {
+  const dt = 0.5;
+  const steps = Math.ceil(maturity / dt);
+  const couponPerPeriod = (couponRate / 100) * dt * 100;
+
+  let lo = -200, hi = 800;
+  for (let iter = 0; iter < 100; iter++) {
+    const mid = (lo + hi) / 2;
+    let pv = 0;
+    for (let s = 1; s <= steps; s++) {
+      const disc = Math.pow(1 + (benchRate / 100 + mid / 10000) * dt, 1);
+      const factor = Math.pow(1 / (1 + (benchRate / 100 + mid / 10000) * dt), s);
+      if (s === steps) {
+        pv += (couponPerPeriod + 100) * factor;
+      } else {
+        pv += couponPerPeriod * factor;
+      }
+    }
+    if (Math.abs(pv - targetPrice) < 0.001) return mid;
+    if (pv > targetPrice) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// Nominal spread (yield - benchmark)
+function bondYield(couponRate, maturity, price) {
+  // Newton's method for YTM
+  const c = couponRate / 100 * 100 / 2; // semi-annual coupon
+  const n = maturity * 2;
+  let y = couponRate / 100; // initial guess
+
+  for (let iter = 0; iter < 100; iter++) {
+    let pv = 0, dpv = 0;
+    for (let t = 1; t <= n; t++) {
+      const disc = Math.pow(1 + y / 2, -t);
+      const cf = t === n ? c + 100 : c;
+      pv += cf * disc;
+      dpv -= t / 2 * cf * disc / (1 + y / 2);
+    }
+    const diff = pv - price;
+    if (Math.abs(diff) < 0.0001) return y * 100;
+    y -= diff / dpv;
+  }
+  return y * 100;
+}
+
+// ============================================================
+// STATE & INPUTS
+// ============================================================
+
+function getInputs() {
+  return {
+    price: parseFloat(document.getElementById('sPrice').value),
+    coupon: parseFloat(document.getElementById('sCoupon').value),
+    maturity: parseInt(document.getElementById('sMat').value),
+    benchRate: parseFloat(document.getElementById('sBench').value),
+    vol: parseFloat(document.getElementById('sVol').value),
+    callPrice: parseFloat(document.getElementById('sCall').value),
+    callProt: parseInt(document.getElementById('sCallProt').value),
+    nPaths: parseInt(document.getElementById('sPaths').value)
+  };
+}
+
+let cachedPaths = null;
+let cachedPathsKey = '';
+
+function getPaths(inp) {
+  const key = inp.benchRate + '|' + inp.vol + '|' + inp.maturity + '|' + inp.nPaths;
+  if (cachedPathsKey !== key) {
+    seed = 42;
+    cachedPaths = simulateRatePaths(inp.benchRate, inp.vol, inp.maturity, inp.nPaths);
+    cachedPathsKey = key;
+  }
+  return cachedPaths;
+}
+
+// ============================================================
+// RENDER FUNCTIONS
+// ============================================================
+
+function renderDecomposition() {
+  const canvas = document.getElementById('decompCanvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+  const inp = getInputs();
+  const paths = getPaths(inp);
+
+  const oas = solveOAS(paths, inp.price, inp.coupon, inp.maturity, inp.callPrice, inp.callProt);
+  const zSpread = solveZSpread(inp.coupon, inp.maturity, inp.benchRate, inp.price);
+  const ytm = bondYield(inp.coupon, inp.maturity, inp.price);
+  const nomSpread = (ytm - inp.benchRate) * 100; // in bps
+  const optionCost = zSpread - oas;
+  const modelPrice = priceWithOAS(paths, inp.coupon, inp.maturity, inp.callPrice, inp.callProt, oas);
+
+  // Update stats
+  document.getElementById('statOAS').textContent = oas.toFixed(0) + ' bp';
+  document.getElementById('statZ').textContent = zSpread.toFixed(0) + ' bp';
+  document.getElementById('statNom').textContent = nomSpread.toFixed(0) + ' bp';
+  document.getElementById('statOC').textContent = optionCost.toFixed(0) + ' bp';
+  document.getElementById('statMP').textContent = modelPrice.toFixed(2);
+  document.getElementById('scOAS').textContent = oas.toFixed(0) + ' bp';
+  document.getElementById('scZ').textContent = zSpread.toFixed(0) + ' bp';
+  document.getElementById('scNom').textContent = nomSpread.toFixed(0) + ' bp';
+
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 60, r: 30, t: 30, b: 50 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  // Stacked bar chart: three bars
+  const maxSpread = Math.max(Math.abs(nomSpread), Math.abs(zSpread), Math.abs(oas) + Math.abs(optionCost)) * 1.3;
+  const barWidth = Math.min(120, cw / 5);
+  const gap = (cw - barWidth * 3) / 4;
+
+  drawGrid(ctx, pad.l, pad.t, cw, ch, 3, 5);
+
+  // Y-axis
+  ctx.fillStyle = '#484f58'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const val = (maxSpread / 5) * (5 - i);
+    ctx.fillText(val.toFixed(0) + ' bp', pad.l - 8, pad.t + (ch / 5) * i + 3);
+  }
+
+  const baseY = pad.t + ch;
+  const bars = [
+    {
+      label: 'Nominal\nSpread',
+      segments: [{ val: Math.max(0, nomSpread), color: 'rgba(210,153,34,0.8)', label: nomSpread.toFixed(0) + ' bp' }]
+    },
+    {
+      label: 'Z-Spread',
+      segments: [{ val: Math.max(0, zSpread), color: 'rgba(88,166,255,0.8)', label: zSpread.toFixed(0) + ' bp' }]
+    },
+    {
+      label: 'OAS +\nOption Cost',
+      segments: [
+        { val: Math.max(0, oas), color: 'rgba(226,203,255,0.8)', label: 'OAS: ' + oas.toFixed(0) },
+        { val: Math.max(0, optionCost), color: 'rgba(248,81,73,0.6)', label: 'Opt: ' + optionCost.toFixed(0) }
+      ]
+    }
+  ];
+
+  bars.forEach((bar, bi) => {
+    const x = pad.l + gap + bi * (barWidth + gap);
+    let cumH = 0;
+
+    bar.segments.forEach((seg, si) => {
+      const segH = (seg.val / maxSpread) * ch;
+      const y = baseY - cumH - segH;
+
+      // Bar with rounded top
+      ctx.fillStyle = seg.color;
+      ctx.beginPath();
+      const r = 4;
+      ctx.moveTo(x, baseY - cumH);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.lineTo(x + barWidth - r, y);
+      ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + r);
+      ctx.lineTo(x + barWidth, baseY - cumH);
+      ctx.closePath();
+      ctx.fill();
+
+      // Value label on bar
+      if (segH > 20) {
+        ctx.fillStyle = '#e6edf3';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(seg.label, x + barWidth / 2, y + segH / 2 + 4);
+      }
+
+      cumH += segH;
+    });
+
+    // X-axis label
+    ctx.fillStyle = '#8b949e';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    const lines = bar.label.split('\n');
+    lines.forEach((line, li) => {
+      ctx.fillText(line, x + barWidth / 2, baseY + 15 + li * 13);
+    });
+  });
+}
+
+function renderRatePaths() {
+  const canvas = document.getElementById('pathsCanvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+  const inp = getInputs();
+  const paths = getPaths(inp);
+
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 50, r: 20, t: 20, b: 35 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  // Find min/max rates
+  let minR = Infinity, maxR = -Infinity;
+  paths.forEach(p => p.forEach(r => { minR = Math.min(minR, r); maxR = Math.max(maxR, r); }));
+  minR = Math.max(0, minR - 0.005);
+  maxR += 0.005;
+
+  drawGrid(ctx, pad.l, pad.t, cw, ch, 10, 5);
+
+  // Y-axis
+  ctx.fillStyle = '#484f58'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const val = maxR - (maxR - minR) / 5 * i;
+    ctx.fillText((val * 100).toFixed(1) + '%', pad.l - 6, pad.t + (ch / 5) * i + 3);
+  }
+
+  // X-axis
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 10; i++) {
+    const yr = (inp.maturity / 10) * i;
+    ctx.fillText(yr.toFixed(0) + 'y', pad.l + (cw / 10) * i, h - pad.b + 15);
+  }
+
+  // Draw all paths faintly
+  const steps = paths[0].length;
+  const displayPaths = Math.min(paths.length, 200);
+  const pathColors = [
+    'rgba(226,203,255,', 'rgba(163,113,247,', 'rgba(137,87,229,',
+    'rgba(88,166,255,', 'rgba(63,185,80,', 'rgba(248,81,73,',
+    'rgba(210,153,34,', 'rgba(226,203,255,'
+  ];
+
+  for (let p = 0; p < displayPaths; p++) {
+    const pts = [];
+    const path = paths[p];
+    for (let s = 0; s < path.length; s++) {
+      const x = pad.l + (s / (steps - 1)) * cw;
+      const y = pad.t + ((maxR - path[s]) / (maxR - minR)) * ch;
+      pts.push([x, y]);
+    }
+    const alpha = Math.max(0.03, 0.15 - displayPaths / 3000);
+    const colorBase = pathColors[p % pathColors.length];
+    drawLine(ctx, pts, colorBase + alpha + ')', 1);
+  }
+
+  // Draw a few highlighted paths
+  const highlighted = [0, Math.floor(paths.length / 4), Math.floor(paths.length / 2), Math.floor(paths.length * 3 / 4), paths.length - 1];
+  const hlColors = ['#e2cbff', '#58a6ff', '#3fb950', '#d29922', '#f85149'];
+
+  highlighted.forEach((pi, hi) => {
+    if (pi >= paths.length) return;
+    const pts = [];
+    const path = paths[pi];
+    for (let s = 0; s < path.length; s++) {
+      const x = pad.l + (s / (steps - 1)) * cw;
+      const y = pad.t + ((maxR - path[s]) / (maxR - minR)) * ch;
+      pts.push([x, y]);
+    }
+    drawLine(ctx, pts, hlColors[hi], 2);
+  });
+
+  // Mean path
+  const meanPts = [];
+  for (let s = 0; s < steps; s++) {
+    let sum = 0;
+    paths.forEach(p => sum += p[s]);
+    const mean = sum / paths.length;
+    const x = pad.l + (s / (steps - 1)) * cw;
+    const y = pad.t + ((maxR - mean) / (maxR - minR)) * ch;
+    meanPts.push([x, y]);
+  }
+  ctx.setLineDash([6, 3]);
+  drawLine(ctx, meanPts, '#e6edf3', 2);
+  ctx.setLineDash([]);
+
+  // Legend
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#e6edf3';
+  ctx.textAlign = 'left';
+  ctx.fillText('-- Mean Path', pad.l + 10, pad.t + 15);
+  ctx.fillStyle = '#8b949e';
+  ctx.fillText(paths.length + ' simulated paths', pad.l + 10, pad.t + 30);
+}
+
+function renderCFFan() {
+  const canvas = document.getElementById('cfFanCanvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+  const inp = getInputs();
+  const paths = getPaths(inp);
+
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 50, r: 20, t: 20, b: 35 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  const dt = 0.5;
+  const steps = Math.ceil(inp.maturity / dt);
+  const couponPerPeriod = (inp.coupon / 100) * dt * 100;
+
+  // Compute cash flows for each path
+  const cfMatrix = []; // [path][step]
+  paths.forEach(path => {
+    const cfs = [];
+    let alive = true;
+    for (let s = 1; s <= steps; s++) {
+      const t = s * dt;
+      if (!alive) { cfs.push(0); continue; }
+      const r = path[Math.min(s, path.length - 1)];
+      // Check call
+      if (inp.callPrice && t > inp.callProt && r < inp.coupon / 100 - 0.005) {
+        cfs.push(couponPerPeriod + inp.callPrice);
+        alive = false;
+        continue;
+      }
+      if (s === steps) {
+        cfs.push(couponPerPeriod + 100);
+      } else {
+        cfs.push(couponPerPeriod);
+      }
+    }
+    cfMatrix.push(cfs);
+  });
+
+  // Compute percentiles at each step
+  const percentiles = [10, 25, 50, 75, 90];
+  const bands = percentiles.map(() => []);
+
+  for (let s = 0; s < steps; s++) {
+    const vals = cfMatrix.map(cf => cf[s]).sort((a, b) => a - b);
+    percentiles.forEach((pct, pi) => {
+      const idx = Math.floor(vals.length * pct / 100);
+      bands[pi].push(vals[idx]);
+    });
+  }
+
+  let maxCF = 0;
+  bands.forEach(b => b.forEach(v => maxCF = Math.max(maxCF, v)));
+  maxCF *= 1.1;
+
+  drawGrid(ctx, pad.l, pad.t, cw, ch, steps, 4);
+
+  // Y-axis
+  ctx.fillStyle = '#484f58'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const val = (maxCF / 4) * (4 - i);
+    ctx.fillText('$' + val.toFixed(0), pad.l - 6, pad.t + (ch / 4) * i + 3);
+  }
+
+  // X-axis
+  ctx.textAlign = 'center';
+  for (let s = 0; s < steps; s++) {
+    const yr = (s + 1) * dt;
+    if (s % 2 === 0 || steps <= 20) {
+      ctx.fillText(yr.toFixed(0) + 'y', pad.l + ((s + 0.5) / steps) * cw, h - pad.b + 15);
+    }
+  }
+
+  // Draw fan bands (10-90, 25-75)
+  const bandColors = ['rgba(226,203,255,0.08)', 'rgba(226,203,255,0.15)'];
+
+  // 10-90 band
+  ctx.fillStyle = bandColors[0];
+  ctx.beginPath();
+  for (let s = 0; s < steps; s++) {
+    const x = pad.l + ((s + 0.5) / steps) * cw;
+    const y = pad.t + ch - (bands[0][s] / maxCF) * ch;
+    s === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  for (let s = steps - 1; s >= 0; s--) {
+    const x = pad.l + ((s + 0.5) / steps) * cw;
+    const y = pad.t + ch - (bands[4][s] / maxCF) * ch;
+    ctx.lineTo(x, y);
+  }
+  ctx.closePath(); ctx.fill();
+
+  // 25-75 band
+  ctx.fillStyle = bandColors[1];
+  ctx.beginPath();
+  for (let s = 0; s < steps; s++) {
+    const x = pad.l + ((s + 0.5) / steps) * cw;
+    const y = pad.t + ch - (bands[1][s] / maxCF) * ch;
+    s === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  for (let s = steps - 1; s >= 0; s--) {
+    const x = pad.l + ((s + 0.5) / steps) * cw;
+    const y = pad.t + ch - (bands[3][s] / maxCF) * ch;
+    ctx.lineTo(x, y);
+  }
+  ctx.closePath(); ctx.fill();
+
+  // Median line
+  const medPts = [];
+  for (let s = 0; s < steps; s++) {
+    const x = pad.l + ((s + 0.5) / steps) * cw;
+    const y = pad.t + ch - (bands[2][s] / maxCF) * ch;
+    medPts.push([x, y]);
+  }
+  drawLine(ctx, medPts, '#e2cbff', 2.5);
+
+  // Legend
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(226,203,255,0.15)';
+  ctx.fillRect(pad.l + 10, pad.t + 8, 12, 12);
+  ctx.fillStyle = '#8b949e';
+  ctx.fillText('25th-75th pctile', pad.l + 26, pad.t + 18);
+  ctx.fillStyle = 'rgba(226,203,255,0.08)';
+  ctx.fillRect(pad.l + 10, pad.t + 24, 12, 12);
+  ctx.fillStyle = '#8b949e';
+  ctx.fillText('10th-90th pctile', pad.l + 26, pad.t + 34);
+  ctx.fillStyle = '#e2cbff';
+  ctx.fillText('-- Median', pad.l + 10, pad.t + 50);
+}
+
+function renderOASSensitivity() {
+  const canvas = document.getElementById('oasSensCanvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+  const inp = getInputs();
+  const paths = getPaths(inp);
+
+  ctx.clearRect(0, 0, w, h);
+  const pad = { l: 55, r: 20, t: 20, b: 35 };
+  const cw = w - pad.l - pad.r;
+  const ch = h - pad.t - pad.b;
+
+  // Compute OAS for a range of prices
+  const priceRange = [];
+  const oasRange = [];
+  const minP = 88, maxP = 112;
+  const step = 1;
+
+  for (let p = minP; p <= maxP; p += step) {
+    const o = solveOAS(paths, p, inp.coupon, inp.maturity, inp.callPrice, inp.callProt);
+    priceRange.push(p);
+    oasRange.push(o);
+  }
+
+  const minOAS = Math.min(...oasRange) - 20;
+  const maxOAS = Math.max(...oasRange) + 20;
+
+  drawGrid(ctx, pad.l, pad.t, cw, ch, 8, 5);
+
+  // Y-axis (OAS)
+  ctx.fillStyle = '#484f58'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++) {
+    const val = maxOAS - (maxOAS - minOAS) / 5 * i;
+    ctx.fillText(val.toFixed(0) + ' bp', pad.l - 6, pad.t + (ch / 5) * i + 3);
+  }
+
+  // X-axis (Price)
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 8; i++) {
+    const val = minP + (maxP - minP) / 8 * i;
+    ctx.fillText(val.toFixed(0), pad.l + (cw / 8) * i, h - pad.b + 15);
+  }
+  ctx.fillText('Bond Price', pad.l + cw / 2, h - 3);
+
+  // OAS curve
+  const pts = [];
+  priceRange.forEach((p, i) => {
+    const x = pad.l + ((p - minP) / (maxP - minP)) * cw;
+    const y = pad.t + ((maxOAS - oasRange[i]) / (maxOAS - minOAS)) * ch;
+    pts.push([x, y]);
+  });
+
+  // Area under curve
+  ctx.fillStyle = 'rgba(226,203,255,0.08)';
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pad.t + ch);
+  pts.forEach(p => ctx.lineTo(p[0], p[1]));
+  ctx.lineTo(pts[pts.length - 1][0], pad.t + ch);
+  ctx.closePath(); ctx.fill();
+
+  drawLine(ctx, pts, '#e2cbff', 2.5);
+
+  // Current price marker
+  const curOAS = solveOAS(paths, inp.price, inp.coupon, inp.maturity, inp.callPrice, inp.callProt);
+  const mx = pad.l + ((inp.price - minP) / (maxP - minP)) * cw;
+  const my = pad.t + ((maxOAS - curOAS) / (maxOAS - minOAS)) * ch;
+
+  // Crosshairs
+  ctx.strokeStyle = 'rgba(226,203,255,0.3)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(mx, pad.t); ctx.lineTo(mx, pad.t + ch); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.l, my); ctx.lineTo(pad.l + cw, my); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Dot
+  ctx.beginPath(); ctx.arc(mx, my, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#e2cbff'; ctx.fill();
+  ctx.strokeStyle = '#0d1117'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Label
+  ctx.fillStyle = '#e6edf3'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Price: ' + inp.price.toFixed(2), mx + 12, my - 10);
+  ctx.fillText('OAS: ' + curOAS.toFixed(0) + ' bp', mx + 12, my + 5);
+
+  // Par line
+  const parX = pad.l + ((100 - minP) / (maxP - minP)) * cw;
+  ctx.strokeStyle = 'rgba(63,185,80,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(parX, pad.t); ctx.lineTo(parX, pad.t + ch); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#3fb950'; ctx.font = '9px sans-serif';
+  ctx.fillText('Par', parX + 3, pad.t + 12);
+}
+
+// ============================================================
+// LABELS & ORCHESTRATION
+// ============================================================
+
+function updateLabels() {
+  document.getElementById('vPrice').textContent = parseFloat(document.getElementById('sPrice').value).toFixed(2);
+  document.getElementById('vCoupon').textContent = parseFloat(document.getElementById('sCoupon').value).toFixed(2) + '%';
+  document.getElementById('vMat').textContent = document.getElementById('sMat').value;
+  document.getElementById('vBench').textContent = parseFloat(document.getElementById('sBench').value).toFixed(2) + '%';
+  document.getElementById('vVol').textContent = parseFloat(document.getElementById('sVol').value).toFixed(2) + '%';
+  document.getElementById('vCall').textContent = parseFloat(document.getElementById('sCall').value).toFixed(2);
+  document.getElementById('vCallProt').textContent = document.getElementById('sCallProt').value;
+  document.getElementById('vPaths').textContent = document.getElementById('sPaths').value;
+}
+
+function renderAll() {
+  updateLabels();
+  renderDecomposition();
+  renderRatePaths();
+  renderCFFan();
+  renderOASSensitivity();
+}
+
+// Event listeners
+['sPrice', 'sCoupon', 'sMat', 'sBench', 'sVol', 'sCall', 'sCallProt', 'sPaths'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderAll);
+});
+
+// Initial render
+renderAll();
+
+// Resize handler
+window.addEventListener('resize', renderAll);
+</script>
+</body>
+</html>
